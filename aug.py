@@ -3,15 +3,15 @@ import numpy as np
 import cv2
 import tensorflow as tf
 from PIL import Image
+import os
 
+# Page configuration
 st.set_page_config(
     page_title="DeepFake Detection System",
-    page_icon="Search",
     layout="centered"
 )
 
-# TITLE
-
+# Title
 st.title("DeepFake Image Detection System")
 
 st.write(
@@ -19,81 +19,115 @@ st.write(
 )
 
 st.write(
-    "Upload a face image to check whether it is Real or Fake."
+    "Upload a face image or select a sample image to check the result."
 )
 
 st.divider()
 
-# LOAD TRAINED MODEL
-
+# Load model
 @st.cache_resource
 def load_model():
-
-    model = tf.keras.models.load_model(
+    return tf.keras.models.load_model(
         "deep_model.keras",
         compile=False
     )
 
-    return model
-
 try:
-
     model = load_model()
-
     st.success("Model loaded successfully")
 
 except Exception as e:
-
     st.error("Model could not be loaded.")
-
-    st.warning(
-        "Please keep 'deep_model.keras' "
-        "in the same folder as this Python file."
-    )
-
+    st.write("Error:", e)
     st.stop()
-    
-st.subheader("Upload Image")
 
-uploaded_file = st.file_uploader(
-    "Select a face image",
-    type=["jpg", "jpeg", "png"]
+
+# Image selection
+st.subheader("Select Image")
+
+option = st.radio(
+    "Choose an option:",
+    ["Upload Image", "Use Sample Image"]
 )
 
-if uploaded_file is not None:
+# UPLOAD IMAGE
 
-    # Read image
-    image = Image.open(uploaded_file)
+if option == "Upload Image":
 
-    # Convert to RGB
-    image = image.convert("RGB")
+    uploaded_file = st.file_uploader(
+        "Select a face image",
+        type=["jpg", "jpeg", "png"]
+    )
 
-    # Display image
+    if uploaded_file is not None:
+
+        image = Image.open(uploaded_file).convert("RGB")
+
+# SAMPLE IMAGE
+
+else:
+
+    sample_images = {
+        "Sample Image 1": "samples/easy_104_1000.jpg",
+        "Sample Image 2": "samples/real_00004.jpg"
+    }
+
+    selected_image = st.selectbox(
+        "Select a sample image:",
+        list(sample_images.keys())
+    )
+
+    image_path = sample_images[selected_image]
+
+    if os.path.exists(image_path):
+
+        image = Image.open(image_path).convert("RGB")
+
+    else:
+
+        st.error(
+            "Sample image not found. "
+            "Please upload the images to the samples folder."
+        )
+
+        st.stop()
+
+# DISPLAY IMAGE
+
+if "image" in locals():
+
     st.subheader("Selected Image")
 
     st.image(
         image,
-        caption="Uploaded Face Image",
+        caption="Input Face Image",
         width=400
     )
 
     st.divider()
 
-    # Detect button
+    # DETECT IMAGE
+
     if st.button("Detect Image"):
 
-        # Convert image to NumPy array
+        # Convert image to NumPy
         img = np.array(image)
 
-        # Resize according to your project
-        # 64 × 64
+        # Convert RGB to BGR
+        img = cv2.cvtColor(
+            img,
+            cv2.COLOR_RGB2BGR
+        )
+
+        # Resize to 64 × 64
+        # Same size as your training code
         img = cv2.resize(
             img,
             (64, 64)
         )
 
-        # Normalize image
-        img = img / 255.0
+        # Normalize
+        img = img.astype("float32") / 255.0
 
         # Add batch dimension
         img = np.expand_dims(
@@ -101,41 +135,55 @@ if uploaded_file is not None:
             axis=0
         )
 
-        prediction = model.predict(img)
-
-        probability = float(
-            prediction[0][0]
+        # Prediction
+        prediction = model.predict(
+            img,
+            verbose=0
         )
 
-        if probability >= 0.5:
+        # Get predicted class
+        predicted_class = np.argmax(
+            prediction[0]
+        )
+
+        # Confidence
+        confidence = (
+            float(prediction[0][predicted_class])
+            * 100
+        )
+
+        # RESULT
+
+        st.subheader("Detection Result")
+
+        # Assuming:
+        # 0 = Fake
+        # 1 = Real
+
+        if predicted_class == 0:
+
+            st.error("The image is FAKE")
 
             result = "FAKE"
-            confidence = probability * 100
 
         else:
+
+            st.success("The image is REAL")
 
             result = "REAL"
-            confidence = (1 - probability) * 100
 
 
-        st.subheader("Result")
-
-        if result == "FAKE":
-
-            st.error(
-                "The image is FAKE"
-            )
-
-        else:
-
-            st.success(
-                "The image is REAL"
-            )
+        st.write(
+            "Prediction:",
+            result
+        )
 
         st.metric(
             "Confidence",
             f"{confidence:.2f}%"
         )
+
+# ABOUT PROJECT
 
 st.divider()
 
@@ -147,11 +195,10 @@ st.write(
 )
 
 st.write(
-    "The uploaded image is resized to 64 × 64 pixels "
-    "before prediction."
+    "The model was trained using the Real and Fake Face "
+    "Detection dataset."
 )
 
 st.write(
-    "The system provides the predicted class and "
-    "confidence percentage."
+    "Input images are resized to 64 × 64 pixels before prediction."
 )
