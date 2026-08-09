@@ -137,20 +137,3 @@ if uploaded_file is not None:
         )
 
 st.divider()
-
-st.subheader("📌 About the Project")
-
-st.write(
-    "This project uses a Convolutional Neural Network (CNN) "
-    "to detect whether a face image is Real or Fake."
-)
-
-st.write(
-    "The uploaded image is resized to 64 × 64 pixels "
-    "before prediction."
-)
-
-st.write(
-    "The system provides the predicted class and "
-    "confidence percentage."
-)
