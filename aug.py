@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import numpy as np
 import cv2
@@ -31,7 +30,8 @@ st.divider()
 def load_model():
 
     model = tf.keras.models.load_model(
-        "deep_model.keras"
+        "deep_model.keras",
+        compile=False
     )
 
     return model
@@ -139,7 +139,7 @@ if uploaded_file is not None:
 
 st.divider()
 
-st.subheader("📌 About the Project")
+st.subheader("About the Project")
 
 st.write(
     "This project uses a Convolutional Neural Network (CNN) "
@@ -155,4 +155,3 @@ st.write(
     "The system provides the predicted class and "
     "confidence percentage."
 )
-```
