@@ -4,58 +4,125 @@ import cv2
 import tensorflow as tf
 from PIL import Image
 
-# Page
+# Page configuration
 st.set_page_config(
-    page_title="DeepFake Detection",
+    page_title="DeepFake Detection System",
+    page_icon="🔍",
     layout="centered"
 )
 
 # Title
 st.title("DeepFake Image Detection System")
-st.write("Upload an image to check whether it is Real or Fake.")
 
-# Load model
+st.write("Deep Learning Based Real and Fake Face Detection")
+st.write("Upload a face image to check whether it is Real or Fake.")
+
+st.divider()
+
+
+# Load trained model
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("deep_model.keras")
+    model = tf.keras.models.load_model(
+        "deep_model.keras",
+        compile=False
+    )
+    return model
 
-model = load_model()
+
+try:
+    model = load_model()
+    st.success("Model loaded successfully")
+
+except Exception as e:
+    st.error("Model could not be loaded.")
+    st.write("Error:", e)
+    st.stop()
+
 
 # Upload image
-file = st.file_uploader(
-    "Upload Face Image",
+st.subheader("Upload Image")
+
+uploaded_file = st.file_uploader(
+    "Select a face image",
     type=["jpg", "jpeg", "png"]
 )
 
-# Prediction
-if file is not None:
 
-    image = Image.open(file).convert("RGB")
+# Prediction
+if uploaded_file is not None:
+
+    image = Image.open(uploaded_file).convert("RGB")
+
+    st.subheader("Selected Image")
 
     st.image(
         image,
-        caption="Uploaded Image",
+        caption="Uploaded Face Image",
         width=400
     )
 
     if st.button("Detect Image"):
 
-        # Preprocessing
+        # Convert RGB image to NumPy
         img = np.array(image)
-        img = cv2.resize(img, (64, 64))
+
+        # IMPORTANT:
+        # Your original training code uses cv2.imread(),
+        # which reads images in BGR format.
+        img = cv2.cvtColor(
+            img,
+            cv2.COLOR_RGB2BGR
+        )
+
+        # Resize to the same size used during training
+        img = cv2.resize(
+            img,
+            (64, 64)
+        )
+
+        # Normalize
         img = img.astype("float32") / 255.0
-        img = np.expand_dims(img, axis=0)
 
-        # Prediction
-        prediction = model.predict(img, verbose=0)
-        probability = float(prediction[0][0])
+        # Add batch dimension
+        img = np.expand_dims(
+            img,
+            axis=0
+        )
 
-        # Result
-        if probability >= 0.5:
+        # Model prediction
+        prediction = model.predict(
+            img,
+            verbose=0
+        )
+
+        # Get predicted class
+        predicted_class = np.argmax(
+            prediction[0]
+        )
+
+        # Get confidence
+        confidence = float(
+            prediction[0][predicted_class]
+        ) * 100
+
+        # Your training code creates two classes.
+        # Assuming:
+        # 0 = Fake
+        # 1 = Real
+
+        if predicted_class == 0:
+            result = "FAKE"
             st.error("The image is FAKE")
-            confidence = probability * 100
         else:
+            result = "REAL"
             st.success("The image is REAL")
-            confidence = (1 - probability) * 100
 
-        st.write(f"Confidence: {confidence:.2f}%")
+        st.write(
+            f"Prediction: {result}"
+        )
+
+        st.metric(
+            "Confidence",
+            f"{confidence:.2f}%"
+        )
