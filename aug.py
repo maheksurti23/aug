@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import numpy as np
 import cv2
@@ -155,4 +154,3 @@ st.write(
     "The system provides the predicted class and "
     "confidence percentage."
 )
-```
