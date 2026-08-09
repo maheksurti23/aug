@@ -1,21 +1,23 @@
+```python
 import streamlit as st
 import numpy as np
 import cv2
 import tensorflow as tf
 from PIL import Image
 
-
-# Page configuration
 st.set_page_config(
     page_title="DeepFake Detection System",
+    page_icon="Search",
     layout="centered"
 )
 
+# TITLE
 
-# Title
 st.title("DeepFake Image Detection System")
 
-st.write("Deep Learning Based Real and Fake Face Detection")
+st.write(
+    "Deep Learning Based Real and Fake Face Detection"
+)
 
 st.write(
     "Upload a face image to check whether it is Real or Fake."
@@ -23,29 +25,34 @@ st.write(
 
 st.divider()
 
+# LOAD TRAINED MODEL
 
-# Load trained model
 @st.cache_resource
 def load_model():
+
     model = tf.keras.models.load_model(
-        "deep_model.keras",
-        compile=False
+        "deep_model.keras"
     )
+
     return model
 
-
-# Load model
 try:
+
     model = load_model()
-    st.success("Model loaded successfully.")
+
+    st.success("Model loaded successfully")
 
 except Exception as e:
+
     st.error("Model could not be loaded.")
-    st.write("Error:", e)
+
+    st.warning(
+        "Please keep 'deep_model.keras' "
+        "in the same folder as this Python file."
+    )
+
     st.stop()
-
-
-# Upload image
+    
 st.subheader("Upload Image")
 
 uploaded_file = st.file_uploader(
@@ -53,12 +60,15 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-
-# Image prediction
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    # Read image
+    image = Image.open(uploaded_file)
 
+    # Convert to RGB
+    image = image.convert("RGB")
+
+    # Display image
     st.subheader("Selected Image")
 
     st.image(
@@ -69,19 +79,21 @@ if uploaded_file is not None:
 
     st.divider()
 
+    # Detect button
     if st.button("Detect Image"):
 
         # Convert image to NumPy array
         img = np.array(image)
 
-        # Resize to 64 x 64
+        # Resize according to your project
+        # 64 × 64
         img = cv2.resize(
             img,
             (64, 64)
         )
 
-        # Normalize
-        img = img.astype("float32") / 255.0
+        # Normalize image
+        img = img / 255.0
 
         # Add batch dimension
         img = np.expand_dims(
@@ -89,47 +101,45 @@ if uploaded_file is not None:
             axis=0
         )
 
-        # Prediction
-        prediction = model.predict(
-            img,
-            verbose=0
+        prediction = model.predict(img)
+
+        probability = float(
+            prediction[0][0]
         )
 
-        # Get predicted class
-        predicted_class = np.argmax(
-            prediction[0]
-        )
+        if probability >= 0.5:
 
-        # Get confidence
-        confidence = (
-            float(prediction[0][predicted_class]) * 100
-        )
-
-        # Result
-        st.subheader("Result")
-
-        if predicted_class == 0:
-
-            st.error("The image is FAKE")
             result = "FAKE"
+            confidence = probability * 100
 
         else:
 
-            st.success("The image is REAL")
             result = "REAL"
+            confidence = (1 - probability) * 100
 
-        st.write("Prediction:", result)
+
+        st.subheader("Result")
+
+        if result == "FAKE":
+
+            st.error(
+                "The image is FAKE"
+            )
+
+        else:
+
+            st.success(
+                "The image is REAL"
+            )
 
         st.metric(
             "Confidence",
             f"{confidence:.2f}%"
         )
 
-
-# About project
 st.divider()
 
-st.subheader("About the Project")
+st.subheader("📌 About the Project")
 
 st.write(
     "This project uses a Convolutional Neural Network (CNN) "
@@ -145,3 +155,4 @@ st.write(
     "The system provides the predicted class and "
     "confidence percentage."
 )
+```
