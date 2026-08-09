@@ -31,6 +31,7 @@ def load_model():
 
     model = tf.keras.models.load_model(
         "deep_model.keras"
+        compile=False
     )
 
     return model
@@ -41,12 +42,12 @@ try:
 
     st.success("Model loaded successfully")
 
-except Exception:
+except Exception as e:
 
     st.error("Model could not be loaded.")
 
     st.warning(
-        "Please keep 'deepfake_model.keras' "
+        "Please keep 'deep_model.keras' "
         "in the same folder as this Python file."
     )
 
