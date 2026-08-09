@@ -30,7 +30,7 @@ st.divider()
 def load_model():
 
     model = tf.keras.models.load_model(
-        "deepfake_model.keras"
+        "deep_model.keras"
     )
 
     return model
